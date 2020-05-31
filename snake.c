@@ -6,6 +6,11 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
 
+#define LEFT -1
+#define RIGHT 1
+#define UP 2
+#define DOWN -2
+
 // Displays an error messege and exits
 void error(char* msg) {
     fprintf(stderr, "%s : %s\n", msg, strerror(errno));
@@ -18,6 +23,7 @@ typedef struct point {
     int y;    
 } point;
 
+// A 15X15px box which denotes a part of the snake's body
 typedef struct snake_body {
     int active;
     point position;
@@ -40,13 +46,13 @@ int move_snake(snake_body* snake, int direction, point food){
     point temp2;
     int new_food = 0;
     temp1 = snake->position;    
-    if (direction == 0){
+    if (direction == RIGHT){
         temp1.x += 15;
-    } else if (direction == 1){
+    } else if (direction == LEFT){
+        temp1.x -= 15; 
+    } else if (direction == DOWN){
         temp1.y += 15;
-    } else if (direction == 2){
-        temp1.x -= 15;
-    } else if (direction == 3){
+    } else if (direction == UP){
         temp1.y -= 15;
     }
     if (temp1.x < 40){
@@ -118,7 +124,7 @@ void draw_snake(snake_body* snake){
     return;
 }
 
-void create_new_food(point* food){
+void create_new_food(point* food, snake_body* snake){
     food->x = 40 + (rand() % 39) * 15;
     food->y = 40 + (rand() % 39) * 15;
 }
@@ -154,7 +160,7 @@ int main() {
 
     // Constructs a Timer that times out every 1/30th second
     // Used to create 30FPS display
-    ALLEGRO_TIMER* timer = al_create_timer(1.0/4.0);
+    ALLEGRO_TIMER* timer = al_create_timer(1.0/30.0);
     if (!(uintptr_t)timer) {
         error("Cannot create Timer");
     }
@@ -194,11 +200,12 @@ int main() {
     unsigned int score = 0;
     point food;
     snake_body snake[1600];
-    int direction = 0;
+    int direction = RIGHT;
     int new_food = 0;
+    int keypress = 0;
 
     init_snake(snake);
-    create_new_food(&food);
+    create_new_food(&food, snake);
 
     ALLEGRO_EVENT event;
     // Game Loop
@@ -212,51 +219,32 @@ int main() {
             done = 1;
             break;
         case ALLEGRO_EVENT_TIMER:
-            if(direction == 3){
-                new_food = move_snake(snake, 3, food);
-            }else if(direction == 2){
-                new_food = move_snake(snake, 2, food);
-            }else if(direction == 1){
-                new_food = move_snake(snake, 1, food);
-            }else if(direction == 0){
-                new_food = move_snake(snake, 0, food);
-            }
+            new_food = move_snake(snake, direction, food);
             redraw = 1;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
+            if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
+                done = 1;
+                break;
+            }
             if(event.keyboard.keycode == ALLEGRO_KEY_UP){
-                if(direction != 3){
-                    new_food = move_snake(snake, 3, food);
-                    direction = 3;
-                    break;
-                }
+                keypress = UP;
+            } else if(event.keyboard.keycode == ALLEGRO_KEY_DOWN){
+                keypress = DOWN;
+            } else if(event.keyboard.keycode == ALLEGRO_KEY_LEFT){
+                keypress = LEFT;
+            } else if(event.keyboard.keycode == ALLEGRO_KEY_RIGHT){
+                keypress = RIGHT;
             }
-            if(event.keyboard.keycode == ALLEGRO_KEY_DOWN){
-                if(direction != 1){
-                    new_food = move_snake(snake, 1, food);
-                    direction = 1;
-                    break;
-                }
+            if(direction != -keypress && direction != keypress){
+                new_food = move_snake(snake, keypress, food);
+                direction = keypress;
+                break;
             }
-            if(event.keyboard.keycode == ALLEGRO_KEY_LEFT){
-                if(direction != 2){
-                    new_food = move_snake(snake, 2, food);
-                    direction = 2;
-                    break;
-                }
-            }
-            if(event.keyboard.keycode == ALLEGRO_KEY_RIGHT){
-                if(direction != 0){
-                    new_food = move_snake(snake, 0, food);
-                    direction = 0;
-                    break;
-                }
-            }
-            redraw = 1;
         }
 
         if (new_food){
-            create_new_food(&food);
+            create_new_food(&food, snake);
             score++;
         }
 
@@ -269,15 +257,16 @@ int main() {
             al_clear_to_color(al_map_rgb(0, 0, 0));
             
             // display score
-            al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 0, 0, "Score: %i", score);
+            al_draw_textf(font, al_map_rgb(255, 255, 255), 10, 10, 0, "Score: %i", score);
             
             // draw playing area
             al_draw_rectangle(40,40, 640, 640, al_map_rgb(255, 255, 0), 1);
-            for(int i = 55; i < 640; i += 15){
-                al_draw_line(40, i, 640, i, al_map_rgb(255, 255, 0), 1);
-                al_draw_line(i, 40, i, 640, al_map_rgb(255, 255, 0), 1);
-                
-            }
+            // for(int i = 55; i < 640; i += 15){
+            //     al_draw_line(40, i, 640, i, al_map_rgb(255, 255, 0), 1);
+            //     al_draw_line(i, 40, i, 640, al_map_rgb(255, 255, 0), 1);  
+            // }
+
+            al_draw_text(font, al_map_rgb(255, 255, 255), 290, 660, 0, "Press Esc to exit...");
 
             // draw food
             draw_food(food);
