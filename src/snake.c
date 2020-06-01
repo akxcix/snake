@@ -1,4 +1,3 @@
-#include "core.h"
 #include "snake.h"
 
 void init_snake(snake_body* snake){

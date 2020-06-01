@@ -1,6 +1,4 @@
 #include "core.h"
-#include "snake.h"
-#include "food.h"
 
 // Exits whit exit code 1 in case an error occurs. Displays error message using errno.h
 void error(char* msg) {

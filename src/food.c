@@ -1,5 +1,4 @@
-#include "core.h"
-#include "snake.h"
+#include "food.h"
 
 void create_new_food(point* food, snake_body* snake){
     food->x = 40 + (rand() % 39) * 15;
