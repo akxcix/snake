@@ -1,6 +1,3 @@
-# binary
-snake
-
 # Prerequisites
 *.d
 
@@ -53,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Editor settings
+.vscode
+
+# Binary
+snake_game
