@@ -52,7 +52,22 @@ Mkfile.old
 dkms.conf
 
 # Editor settings
+.idea
 .vscode
+
+# cmake
+cmake-build-debug
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
 
 # Binary
 snake_game

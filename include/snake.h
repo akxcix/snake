@@ -9,7 +9,7 @@ typedef struct snake_body {
 } snake_body;
 
 void init_snake(snake_body* snake);
-int move_snake(snake_body* snake, int direction, point food);
+int move_snake(snake_body* snake, int direction, point* food);
 int detect_snake_collisson(snake_body* snake);
 void draw_snake(snake_body* snake);
 

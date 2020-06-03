@@ -47,8 +47,12 @@ unsigned int play_snake(
 
         // whenever framerate timer goes off
         case ALLEGRO_EVENT_TIMER:
-            new_food = move_snake(snake, direction, food); // moves snake in last direction
-            redraw = 1;
+            // moves snake in last direction
+            if (move_snake(snake, direction, &food)){
+                create_new_food(&food, snake);
+                score++; // increment score
+            }
+            redraw = 1;     // redraw display
             break;
 
         // whenever a key is pressed
@@ -73,25 +77,24 @@ unsigned int play_snake(
 
             // change direction if new direction is not same as or opposite of old direction 
             if(direction != -keypress && direction != keypress){
-                new_food = move_snake(snake, keypress, food);   // move snake in changed direction
+                // move snake in changed direction
+                if (move_snake(snake, direction, &food)){
+                    create_new_food(&food, snake);
+                    score++; // increment score
+                }
                 direction = keypress;   // update current direction
                 break;
             }
         }
 
-        // create new food if previous was consumed
-        if (new_food){
-            create_new_food(&food, snake);
-            score++; // increment score
-        }
-
         // break out of game loop if done with playing
-        if (done){
+        if (done || detect_snake_collisson(snake)){
             break;
         }
 
         // redraw the display if redraw flag is set and event queue is empty
-        if (redraw && al_is_event_queue_empty(queue)){
+//        if (redraw && al_is_event_queue_empty(queue)){
+        if (redraw){
             al_clear_to_color(al_map_rgb(0, 0, 0));     // background color
             al_draw_text(font, al_map_rgb(255, 255, 255), 290, 660, 0, "Press ESC to exit..."); // display exit key
             al_draw_textf(font, al_map_rgb(255, 255, 255), 10, 10, 0, "Score: %i", score);      // display score
@@ -107,7 +110,6 @@ unsigned int play_snake(
             }
             draw_food(food);    // display food
             draw_snake(snake);  // display snake
-
             al_flip_display();  // draw the display
             redraw = 0;     // unset redraw flag so that display is drawn only when next timer event occurs
         }
@@ -138,7 +140,7 @@ void play_game(){
     // constructs a Timer that times out every 1/30th second
     // Used to create 30FPS display
     // returns NULL pointer if unable to create
-    ALLEGRO_TIMER* timer = al_create_timer(1.0/30.0);
+    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 30.0);
     if (!(uintptr_t)timer) {
         error("Cannot create Timer");
     }
@@ -157,14 +159,14 @@ void play_game(){
         error("Cannot create Display Window");
     }
 
-    // contructs font to be used
+    // constructs font to be used
     // returns NULL pointer if unable to create
     ALLEGRO_FONT* font = al_create_builtin_font();
     if (!(uintptr_t)font) {
         error("Cannot create font");
     }
 
-    // Regsiter events that would go into Event Queue
+    // Register events that would go into Event Queue
     al_register_event_source(queue, al_get_keyboard_event_source());    // Keyboard events
     al_register_event_source(queue, al_get_display_event_source(disp)); // Display events
     al_register_event_source(queue, al_get_timer_event_source(timer));  // Timer events
@@ -184,5 +186,4 @@ void play_game(){
     al_destroy_display(disp);
     al_destroy_timer(timer);
     al_destroy_event_queue(queue);
-    return;
 }
