@@ -23,7 +23,6 @@ unsigned int play_snake(
     point food;             // registers a point on the board as food
     snake_body snake[1600]; // creates a 1600 element(total no of cells on board) array of snake_body structs to denote a snake
     int direction = RIGHT;  // start direction of snake
-    int new_food = 0;       // this variable is a flag that is set when there is a need to create a new food point
     int keypress = RIGHT;   // this is used to store the last direction snake was instructed to move by the user
     int done = 0;           // a flag which is set when the game is over, or the user asked to end the game, or user closes the window
     int redraw = 1;         // a flag which is set when the display needs to be redrawn. Set using timer to have a constant frame rate
@@ -88,13 +87,18 @@ unsigned int play_snake(
         }
 
         // break out of game loop if done with playing
-        if (done || detect_snake_collisson(snake)){
+        if (done){
+            break;
+        }
+
+        // end game if snake collides with itself
+        if (detect_snake_collisson(snake)){
+            sleep(5);  // show final state for 5s
             break;
         }
 
         // redraw the display if redraw flag is set and event queue is empty
-//        if (redraw && al_is_event_queue_empty(queue)){
-        if (redraw){
+        if (redraw && al_is_event_queue_empty(queue)){
             al_clear_to_color(al_map_rgb(0, 0, 0));     // background color
             al_draw_text(font, al_map_rgb(255, 255, 255), 290, 660, 0, "Press ESC to exit..."); // display exit key
             al_draw_textf(font, al_map_rgb(255, 255, 255), 10, 10, 0, "Score: %i", score);      // display score
@@ -115,6 +119,118 @@ unsigned int play_snake(
         }
     }
     return score;   // return the score obtained
+}
+
+// loads start screen for the game. allows user to choose difficulty level and set option to display grid
+int start_game_screen(
+        ALLEGRO_EVENT_QUEUE* queue,
+        ALLEGRO_TIMER* timer,
+        ALLEGRO_DISPLAY* display,
+        ALLEGRO_FONT* font)
+{
+    int redraw = 0;         // set when display needs to be redrawn
+    int difficulty = 3;     // default difficulty
+    int rate_change = 0;    // set to 1 when difficulty is changed implying refresh rate has changed
+    int display_grid = 0;   // display grid flag
+    char grid[4];           // string version of display_grid to be drawn on display as YES or NO
+    sprintf(grid, "NO");    // intializes display_grid flag string as NO
+    int start_game = 0;     // indicates when player is ready to play
+
+    ALLEGRO_EVENT event;    // stores events from queue
+    // while user is not ready to play
+    while (!start_game){
+
+        // wait for an event
+        al_wait_for_event(queue, &event);
+        switch(event.type) {
+        // redraw display at frame rate
+        case ALLEGRO_EVENT_TIMER:
+            redraw = 1;
+            break;
+        // respond to keypress
+        case ALLEGRO_EVENT_KEY_DOWN:
+            // adjust difficulty
+            if(event.keyboard.keycode == ALLEGRO_KEY_UP){
+                if(difficulty < 5){
+                    difficulty += 1;
+                    rate_change = 1;
+                }
+            }
+            if(event.keyboard.keycode == ALLEGRO_KEY_DOWN){
+                if(difficulty > 1){
+                    difficulty -= 1;
+                    rate_change = 1;
+                }
+            }
+
+            // toggle display_grid flag
+            if(event.keyboard.keycode == ALLEGRO_KEY_G){
+                if (display_grid == 1){
+                    display_grid = 0;
+                    sprintf(grid, "NO");
+                } else {
+                    display_grid = 1;
+                    sprintf(grid, "YES");
+                }
+            }
+
+            // start game
+            if (event.keyboard.keycode == ALLEGRO_KEY_SPACE){
+                start_game = 1;
+            }
+
+            // redraw after keypress
+            redraw = 1;
+            break;
+        }
+
+        // update display frame rate by adjusting timer
+        if (rate_change){
+            float frame_rate;
+            // maps difficulty values to frame rates
+            switch(difficulty){
+            case 1:
+                frame_rate = 5.0;
+                break;
+            case 2:
+                frame_rate = 10.0;
+                break;
+            case 3:
+                frame_rate = 30.0;
+                break;
+            case 4:
+                frame_rate = 40.0;
+                break;
+            case 5:
+                frame_rate = 60.0;
+                break;
+            // default difficulty
+            default:
+                frame_rate = 30.0;
+                break;
+            }
+            al_set_timer_speed(timer, 1.0 / frame_rate); // updates timer
+            rate_change = 0;    // resets to indicate that that frame rate has been updated
+        }
+
+        // draws on display
+        if (redraw && al_is_event_queue_empty(queue)){
+            al_clear_to_color(al_map_rgb( 0, 0, 0));    // clear background to black
+
+            // Start Menu
+            al_draw_rectangle(100,150,580,400, al_map_rgb_f(0, 1, 1),2);
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 290, 180, 0, "Play Snake!");
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 250, 200, 0, "Press SPACE to start.");
+            al_draw_textf(font, al_map_rgb_f(1, 1, 1), 286, 260, 0, "Difficulty: %i", difficulty);
+            al_draw_textf(font, al_map_rgb_f(1, 1, 1), 270, 280, 0, "Display Grid: %s", grid);
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 200, 340, 0, "Use UP and DOWN to change difficulty");
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 195, 360, 0, "Press G to toggle display grid option");
+
+            // send to display
+            al_flip_display();
+        }
+    }
+    return display_grid;    // return 1 if gris has to be displayed
 }
 
 // this function is used to play the game. it initializes Allegro and its addons. It also initializes 
@@ -173,12 +289,10 @@ void play_game(){
 
     unsigned int score = 0;     // initialize score to 0
     al_start_timer(timer);      // start timer to maintain constant frame rate accross gameplays
-    
-    // TODO: create start menu screen
 
-    // call main gameplay function with display grid flag and save score
-    score = play_snake(queue, timer, disp, font, 0);
-
+    // main gameplay
+    int display_grid = start_game_screen(queue, timer, disp, font);     // start screen
+    score = play_snake(queue, timer, disp, font, display_grid);         // gameplay screen
     printf("Score: %i\n", score);       // TODO: replace with game over screen
 
     // Destructors
