@@ -106,14 +106,14 @@ unsigned int play_snake(
             al_clear_to_color(al_map_rgb(0, 0, 0));     // background color
             al_draw_text(font, al_map_rgb(255, 255, 255), 290, 660, 0, "Press ESC to exit..."); // display exit key
             al_draw_textf(font, al_map_rgb(255, 255, 255), 10, 10, 0, "Score: %i", score);      // display score
-            al_draw_rectangle(40,40, 640, 640, al_map_rgb(255, 255, 0), 2);     // game boundary
+            al_draw_rectangle(40,40, 640, 640, al_map_rgb(0, 255, 255), 2);     // game boundary
             
             // if display grid flag is set
             if (display_grid){
                 // for each 15px interval between 40 and 640
                 for(int i = 55; i < 640; i += 15){
-                    al_draw_line(40, i, 640, i, al_map_rgb(0, 255, 255), 1);    // draw horizontal line
-                    al_draw_line(i, 40, i, 640, al_map_rgb(0, 255, 255), 1);    // draw vertical line
+                    al_draw_line(40, i, 640, i, al_map_rgb(95, 158, 160), 1);    // draw horizontal line
+                    al_draw_line(i, 40, i, 640, al_map_rgb(95, 158, 160), 1);    // draw vertical line
                 }
             }
             draw_food(food);    // display food
