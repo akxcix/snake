@@ -14,7 +14,8 @@ unsigned int play_snake(
     ALLEGRO_TIMER* timer,
     ALLEGRO_DISPLAY* display,
     ALLEGRO_FONT* font,
-    int display_grid
+    int display_grid,
+    int* endgame_flag
 ){
     ALLEGRO_EVENT event;    // registers a variable that store events from event queue
     
@@ -41,6 +42,7 @@ unsigned int play_snake(
         switch(event.type){
         // whenever the display is closed by clicking 'x'
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            *endgame_flag = 1;
             done = 1;   
             break;
 
@@ -56,6 +58,8 @@ unsigned int play_snake(
 
         // whenever a key is pressed
         case ALLEGRO_EVENT_KEY_DOWN:
+            redraw = 1;
+
             // if escape key is pressed
             if(event.keyboard.keycode == ALLEGRO_KEY_ESCAPE){
                 // set flag to exit the game
@@ -93,7 +97,7 @@ unsigned int play_snake(
 
         // end game if snake collides with itself
         if (detect_snake_collisson(snake)){
-            sleep(5);  // show final state for 5s
+            sleep(3);  // show final state for 5s
             break;
         }
 
@@ -108,8 +112,8 @@ unsigned int play_snake(
             if (display_grid){
                 // for each 15px interval between 40 and 640
                 for(int i = 55; i < 640; i += 15){
-                    al_draw_line(40, i, 640, i, al_map_rgb(255, 255, 0), 1);    // draw horizontal line
-                    al_draw_line(i, 40, i, 640, al_map_rgb(255, 255, 0), 1);    // draw vertical line
+                    al_draw_line(40, i, 640, i, al_map_rgb(0, 255, 255), 1);    // draw horizontal line
+                    al_draw_line(i, 40, i, 640, al_map_rgb(0, 255, 255), 1);    // draw vertical line
                 }
             }
             draw_food(food);    // display food
@@ -126,7 +130,8 @@ int start_game_screen(
         ALLEGRO_EVENT_QUEUE* queue,
         ALLEGRO_TIMER* timer,
         ALLEGRO_DISPLAY* display,
-        ALLEGRO_FONT* font)
+        ALLEGRO_FONT* font,
+        int* endgame_flag)
 {
     int redraw = 0;         // set when display needs to be redrawn
     int difficulty = 3;     // default difficulty
@@ -143,6 +148,10 @@ int start_game_screen(
         // wait for an event
         al_wait_for_event(queue, &event);
         switch(event.type) {
+        case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            start_game = 1;
+            *endgame_flag = 1;
+            break;
         // redraw display at frame rate
         case ALLEGRO_EVENT_TIMER:
             redraw = 1;
@@ -230,7 +239,55 @@ int start_game_screen(
             al_flip_display();
         }
     }
-    return display_grid;    // return 1 if gris has to be displayed
+    return display_grid;    // return 1 if grid has to be displayed
+}
+
+void game_over_screen(
+        ALLEGRO_EVENT_QUEUE* queue,
+        ALLEGRO_TIMER* timer,
+        ALLEGRO_DISPLAY* display,
+        ALLEGRO_FONT* font,
+        unsigned  int score)
+        {
+
+    int redraw = 0; // flag to redraw according to frame rate
+    int done = 0;   // flag sets to 1 if a key is pressed
+
+    // unless a key is pressed expressing desire to quit
+    while(!done) {
+        ALLEGRO_EVENT event;    // stores event
+        al_wait_for_event(queue, &event);   // waits for event
+
+
+        switch (event.type) {
+            // redraw at frame rate
+            case ALLEGRO_EVENT_TIMER:
+                redraw = 1;
+                break;
+
+            // exit on any keypress or window close
+            case ALLEGRO_EVENT_KEY_DOWN:
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                done = 1;
+                break;
+        }
+
+        if (redraw && al_is_event_queue_empty(queue)){
+            al_clear_to_color(al_map_rgb( 0, 0, 0));    // clear background to black
+
+            // Start Menu
+            al_draw_rectangle(100,150,580,400, al_map_rgb_f(0, 1, 1),2);
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 300, 180, 0, "Game Over");
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 270, 200, 0, "You played well!");
+            al_draw_textf(font, al_map_rgb_f(1, 1, 1), 286, 260, 0, "Your score: %i", score);
+            al_draw_text(font, al_map_rgb_f(1, 1, 1), 255, 360, 0, "Press ANY key to exit.");
+
+            // send to display
+            al_flip_display();
+            redraw = 0; // do not redraw util timer goes off
+        }
+    }
+
 }
 
 // this function is used to play the game. it initializes Allegro and its addons. It also initializes 
@@ -288,12 +345,18 @@ void play_game(){
     al_register_event_source(queue, al_get_timer_event_source(timer));  // Timer events
 
     unsigned int score = 0;     // initialize score to 0
-    al_start_timer(timer);      // start timer to maintain constant frame rate accross gameplays
+    al_start_timer(timer);      // start timer to maintain constant frame rate accross gameplay
+
+    int endgame_flag = 0;   // sets to 1 when close display is selected. allows to exit the program
 
     // main gameplay
-    int display_grid = start_game_screen(queue, timer, disp, font);     // start screen
-    score = play_snake(queue, timer, disp, font, display_grid);         // gameplay screen
-    printf("Score: %i\n", score);       // TODO: replace with game over screen
+    int display_grid = start_game_screen(queue, timer, disp, font, &endgame_flag);     // start screen
+    if (!endgame_flag) {    // if window hasn't been closed
+        score = play_snake(queue, timer, disp, font, display_grid, &endgame_flag);     // gameplay screen
+    }
+    if(!endgame_flag){      // if window hasn't been closed
+        game_over_screen(queue, timer, disp, font, score);  // display score
+    }
 
     // Destructors
     al_destroy_font(font);
